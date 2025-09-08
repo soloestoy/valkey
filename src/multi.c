@@ -97,6 +97,7 @@ void queueMultiCommand(client *c, uint64_t cmd_flags) {
     mc->argv = c->argv;
     mc->argv_len = c->argv_len;
     mc->slot = c->slot;
+    mc->net_input_bytes_curr_cmd = c->net_input_bytes_curr_cmd;
 
     c->mstate->count++;
     c->mstate->cmd_flags |= cmd_flags;
@@ -109,6 +110,7 @@ void queueMultiCommand(client *c, uint64_t cmd_flags) {
     c->argc = 0;
     c->argv_len_sum = 0;
     c->argv_len = 0;
+    c->net_input_bytes_curr_cmd = 0;
 }
 
 void discardTransaction(client *c) {
@@ -165,6 +167,7 @@ void execCommand(client *c) {
     robj **orig_argv;
     int orig_argc, orig_argv_len;
     struct serverCommand *orig_cmd;
+    unsigned long long orig_net_input_bytes_curr_cmd;
 
     if (!c->flag.multi) {
         addReplyError(c, "EXEC without MULTI");
@@ -207,12 +210,14 @@ void execCommand(client *c) {
     orig_argv_len = c->argv_len;
     orig_argc = c->argc;
     orig_cmd = c->cmd;
+    orig_net_input_bytes_curr_cmd = c->net_input_bytes_curr_cmd;
     addReplyArrayLen(c, c->mstate->count);
     for (j = 0; j < c->mstate->count; j++) {
         c->argc = c->mstate->commands[j].argc;
         c->argv = c->mstate->commands[j].argv;
         c->argv_len = c->mstate->commands[j].argv_len;
         c->cmd = c->realcmd = c->mstate->commands[j].cmd;
+        c->net_input_bytes_curr_cmd = c->mstate->commands[j].net_input_bytes_curr_cmd;
 
         /* ACL permissions are also checked at the time of execution in case
          * they were changed after the commands were queued. */
@@ -263,6 +268,7 @@ void execCommand(client *c) {
     c->argv_len = orig_argv_len;
     c->argc = orig_argc;
     c->cmd = c->realcmd = orig_cmd;
+    c->net_input_bytes_curr_cmd = orig_net_input_bytes_curr_cmd;
     discardTransaction(c);
 
     server.in_exec = 0;

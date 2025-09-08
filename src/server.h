@@ -911,6 +911,7 @@ typedef struct multiCmd {
     int argc;
     struct serverCommand *cmd;
     int slot;
+    unsigned long long net_input_bytes_curr_cmd;
 } multiCmd;
 
 typedef struct multiState {

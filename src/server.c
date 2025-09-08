@@ -4022,7 +4022,13 @@ void afterCommand(client *c) {
     /* Flush pending tracking invalidations. */
     trackingHandlePendingKeyInvalidations();
 
+    clusterSlotStatsAddNetworkBytesInForUserClient(c);
     clusterSlotStatsAddNetworkBytesOutForUserClient(c);
+
+    if (!c->flag.blocked) {
+        c->net_input_bytes_curr_cmd = 0;
+        c->net_output_bytes_curr_cmd = 0;
+    }
 
     /* Flush other pending push messages. only when we are not in nested call.
      * So the messages are not interleaved with transaction response. */
